@@ -96,3 +96,6 @@ The application will be available at `http://localhost:5173`.
 
 ## 📄 License
 This project is licensed under the ISC License.
+
+## ✨ Updated Documentation Section
+This project is continuously improving.
