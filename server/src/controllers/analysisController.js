@@ -35,17 +35,24 @@ export async function analyzeImage(req, res, next) {
       analysis = getMockAnalysisResult(userContext);
     }
 
-    // 4. Upload image to Cloudinary (Bypassed)
-    /*
-    const uploadResult = await new Promise((resolve, reject) => {
-      const stream = cloudinary.uploader.upload_stream(
-        { folder: 'nutriai/meals', resource_type: 'image' },
-        (err, result) => err ? reject(err) : resolve(result)
-      );
-      stream.end(buffer);
-    });
-    */
-    const uploadResult = { secure_url: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?q=80&w=800', public_id: null };
+    // 4. Upload image to Cloudinary
+    let uploadResult;
+    try {
+      uploadResult = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          {
+            folder: 'nutriai/meals',
+            resource_type: 'image',
+            transformation: [{ width: 800, crop: 'limit', quality: 'auto' }]
+          },
+          (err, result) => err ? reject(err) : resolve(result)
+        );
+        stream.end(buffer);
+      });
+    } catch (cloudErr) {
+      console.warn('[NutriAI] Cloudinary upload failed, using placeholder:', cloudErr.message);
+      uploadResult = { secure_url: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?q=80&w=800', public_id: null };
+    }
 
     // 5. Save meal to DB
     const meal = await Meal.create({

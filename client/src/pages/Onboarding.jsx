@@ -45,7 +45,7 @@ const PillSelect = ({ opts, selected, toggle }) => (
 
 export default function Onboarding() {
   const navigate = useNavigate();
-  const { setAuth } = useAuthStore();
+  const { setAuth: _setAuth } = useAuthStore(); // keep hook usage if needed for side effects, though setAuth itself isn't used directly here since we do useAuthStore.getState().setAuth
   const [step, setStep] = useState(1);
   const totalSteps = 9;
   const [loading, setLoading] = useState(false);
@@ -80,7 +80,7 @@ export default function Onboarding() {
         }
       };
       const res = await api.patch('/users/me', payload);
-      const { user } = useAuthStore.getState();
+
       useAuthStore.getState().setAuth(res.data.data, useAuthStore.getState().accessToken, useAuthStore.getState().refreshToken);
       localStorage.removeItem('justRegistered');
       navigate('/home');

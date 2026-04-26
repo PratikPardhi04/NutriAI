@@ -20,5 +20,6 @@ const dailySummarySchema = new mongoose.Schema({
 }, { timestamps: true });
 
 dailySummarySchema.index({ user: 1, date: 1 }, { unique: true });
+dailySummarySchema.index({ user: 1, date: -1 });
 
 export default mongoose.model('DailySummary', dailySummarySchema);

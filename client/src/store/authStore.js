@@ -21,11 +21,9 @@ const useAuthStore = create(persist(
   }),
   {
     name: 'nutriai-auth',
-    partialState: (state) => ({
-      user: state.user,
-      refreshToken: state.refreshToken
-      // NOTE: Don't persist accessToken — it's short-lived
-    })
+    // 'partialize' is the correct API (not 'partialState')
+    // accessToken intentionally excluded — it's short-lived (15m)
+    partialize: (state) => ({ user: state.user, refreshToken: state.refreshToken })
   }
 ));
 

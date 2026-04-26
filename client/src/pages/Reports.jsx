@@ -45,7 +45,7 @@ export default function Reports() {
           const sumRes = await api.get(`/meals/summary/range?days=${days}`);
           setDb({ loading: false, summary: sumRes.data.data, meals: null }); // null meals array indicates range view
         }
-      } catch (err) {
+      } catch {
         setDb(prev => ({ ...prev, loading: false }));
       }
     }

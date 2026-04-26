@@ -32,6 +32,7 @@ export default function Scan() {
   const [showOptions, setShowOptions] = useState(false);
 
   const [analyzing, setAnalyzing] = useState(false);
+  const [loadingMsg, setLoadingMsg] = useState('Analyzing...');
   const [complete, setComplete] = useState(false);
   const [mealType, setMealType] = useState('Lunch');
 
@@ -52,6 +53,24 @@ export default function Scan() {
     e.target.value = '';
   };
 
+  const compressImageClient = (file) => new Promise((resolve) => {
+    const canvas = document.createElement('canvas');
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 800;
+      let { width, height } = img;
+      if (width > MAX || height > MAX) {
+        if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
+        else { width = Math.round(width * MAX / height); height = MAX; }
+      }
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      canvas.toBlob(blob => resolve(blob || file), 'image/jpeg', 0.7);
+    };
+    img.src = URL.createObjectURL(file);
+  });
+
   const handleAnalyze = async () => {
     if (!imageFile) {
       setError('Please tap the viewfinder to upload an image first.');
@@ -60,10 +79,15 @@ export default function Scan() {
 
     setAnalyzing(true);
     setError('');
+    setLoadingMsg('Compressing image...');
 
     try {
+      const compressed = await compressImageClient(imageFile);
+      setLoadingMsg('Sending to AI...');
+      await new Promise(r => setTimeout(r, 300)); // let UI update before blocking call
+      setLoadingMsg('AI is analyzing your meal...');
       const formData = new FormData();
-      formData.append('image', imageFile);
+      formData.append('image', compressed, 'meal.jpg');
       formData.append('mealType', mealType.toLowerCase());
       if (description) formData.append('description', description);
 
@@ -275,10 +299,19 @@ export default function Scan() {
 
             <button className="btn-primary" onClick={handleAnalyze} style={{ position: 'relative' }} disabled={analyzing}>
               {analyzing ? (
-                <div style={{ display: 'flex', gap: 8 }}>{[0, 1, 2].map(i => <div key={i} style={{ width: 8, height: 8, background: '#0A0A0F', borderRadius: '50%', animation: `pulseBracket 1s infinite ${i * 0.2}s` }} />)}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ display: 'flex', gap: 5 }}>
+                    {[0, 1, 2].map(i => (
+                      <div key={i} style={{ width: 7, height: 7, background: '#0A0A0F', borderRadius: '50%', animation: `pulseBracket 1s infinite ${i * 0.2}s` }} />
+                    ))}
+                  </div>
+                  <span style={{ fontSize: 13, color: '#0A0A0F', fontWeight: 500 }}>{loadingMsg}</span>
+                </div>
               ) : 'Analyze with AI →'}
             </button>
-            <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--muted)', marginTop: 12 }}>Powered by AI Vision (NutriAI)</div>
+            <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--muted)', marginTop: 12 }}>
+              {analyzing ? '⏱ Usually takes 5–15 seconds' : 'Powered by AI Vision (NutriAI)'}
+            </div>
           </div>
 
           {/* RIGHT: Results */}

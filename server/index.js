@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import rateLimit from 'express-rate-limit';
 import { connectDB } from './src/config/db.js';
 import authRoutes from './src/routes/auth.js';
 import mealRoutes from './src/routes/meals.js';
@@ -15,26 +16,48 @@ connectDB();
 
 const app = express();
 
+// Rate limiters
+const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: { message: 'Too many attempts, try again in 15 minutes' } });
+const apiLimiter  = rateLimit({ windowMs: 15 * 60 * 1000, max: 200 });
+const scanLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 30, message: { message: 'Scan limit reached, try again in an hour' } });
+
 app.use(helmet());
-app.use(cors({ 
+app.use(cors({
   origin: (origin, callback) => {
-    // Allow any origin in development to support mobile testing
-    if (!origin || process.env.NODE_ENV === 'development') {
-      return callback(null, true);
-    }
+    if (!origin || process.env.NODE_ENV !== 'production') return callback(null, true);
     return callback(null, process.env.CLIENT_ORIGIN);
-  }, 
-  credentials: true 
+  },
+  credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
-app.use(morgan('dev'));
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
-app.use('/api/auth',     authRoutes);
-app.use('/api/meals',    mealRoutes);
-app.use('/api/analysis', analysisRoutes);
-app.use('/api/users',    userRoutes);
+// Health check (no auth, for uptime monitors)
+app.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
+
+app.use('/api/auth',            authLimiter, authRoutes);
+app.use('/api/analysis/scan',   scanLimiter);
+app.use('/api',                 apiLimiter);
+app.use('/api/meals',           mealRoutes);
+app.use('/api/analysis',        analysisRoutes);
+app.use('/api/users',           userRoutes);
 
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`NutriAI server running on port ${PORT}`));
+const server = app.listen(process.env.PORT || 5000, () =>
+  console.log(`NutriAI running on port ${process.env.PORT || 5000} [${process.env.NODE_ENV || 'development'}]`)
+);
+
+// Graceful shutdown
+const shutdown = () => {
+  console.log('Shutting down gracefully...');
+  server.close(async () => {
+    const mongoose = (await import('mongoose')).default;
+    await mongoose.connection.close();
+    process.exit(0);
+  });
+  setTimeout(() => process.exit(1), 10000);
+};
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
+process.on('unhandledRejection', (reason) => console.error('Unhandled rejection:', reason));

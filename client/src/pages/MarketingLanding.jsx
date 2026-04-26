@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { motion, useInView, AnimatePresence } from 'framer-motion'
+import { motion, useInView, AnimatePresence } from 'framer-motion' // eslint-disable-line no-unused-vars
 import { Link } from 'react-router-dom'
 
 // ─── Google Fonts + Global Styles ───────────────────────────────────────────
@@ -926,6 +926,7 @@ const CoachChat = () => {
     if (!inView) return
     const timers = msgs.map((_, i) => setTimeout(() => setShown(s => s + 1), 400 + i * 700))
     return () => timers.forEach(clearTimeout)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inView])
 
   return (

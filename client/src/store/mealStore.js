@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import api from '../services/api';
 
-const useMealStore = create((set, get) => ({
+const useMealStore = create((set) => ({
   meals: [],
   dailySummary: null,
   weeklyReport: null,

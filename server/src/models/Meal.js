@@ -42,5 +42,6 @@ const mealSchema = new mongoose.Schema({
 
 // Index for efficient daily queries
 mealSchema.index({ user: 1, loggedAt: -1 });
+mealSchema.index({ user: 1, loggedAt: 1 });
 
 export default mongoose.model('Meal', mealSchema);

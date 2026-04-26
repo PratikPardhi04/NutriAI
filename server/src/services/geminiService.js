@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const geminiKey = process.env.GEMINI_API_KEY;
-console.log(`[NutriAI] Gemini key: ${geminiKey ? geminiKey.substring(0, 10) + '...' : 'NOT FOUND ⚠️'}`);
+if (!geminiKey) console.error('[NutriAI] ⚠️  GEMINI_API_KEY not set — AI calls will fail');
 
 const ai = new GoogleGenAI({ apiKey: geminiKey });
 const MODEL = 'gemini-2.5-flash';
@@ -16,8 +16,8 @@ async function compressImage(imageBase64, mediaType) {
   try {
     const buffer = Buffer.from(imageBase64, 'base64');
     const compressed = await sharp(buffer)
-      .resize(480, 480, { fit: 'inside', withoutEnlargement: true })
-      .jpeg({ quality: 60 })
+      .resize(320, 320, { fit: 'inside', withoutEnlargement: true })
+      .jpeg({ quality: 45, mozjpeg: true })
       .toBuffer();
     console.log(`[NutriAI] Image: ${(buffer.length / 1024).toFixed(0)}KB → ${(compressed.length / 1024).toFixed(0)}KB`);
     return { base64: compressed.toString('base64'), mimeType: 'image/jpeg' };
@@ -58,10 +58,10 @@ function parseJSON(raw) {
 //  PROMPTS
 // ============================================================
 function buildSystemPrompt(u) {
-  return `You are a nutrition analyzer. User:${u.age || '?'}y ${u.gender || '?'} ${u.weightKg || '?'}kg goal:${u.fitnessGoal || 'maintenance'} targets:${u.targets?.calories || 0}cal ${u.targets?.protein || 0}g protein ${u.targets?.carbs || 0}g carbs ${u.targets?.fats || 0}g fat.
-Respond ONLY with this exact JSON (no extra text):
-{"food_items":[{"name":"str","estimated_quantity":"str","confidence":"high","calories":0,"protein":0,"carbs":0,"fats":0,"fiber":0,"sugar":0}],"total_nutrition":{"calories":0,"protein":0,"carbs":0,"fats":0,"fiber":0,"sugar":0},"health_insights":["str"],"health_score":0,"coach_advice":"str"}
-IMPORTANT: health_score MUST be an integer between 0 and 10 (not 0–100). For example, a healthy meal scores 8, not 80.`;
+  const t = u.targets || {};
+  return `Nutrition analyzer. User:${u.age||'?'}y ${u.gender||'?'} ${u.weightKg||'?'}kg goal:${u.fitnessGoal||'maintenance'} cal:${t.calories||0} pro:${t.protein||0}g carb:${t.carbs||0}g fat:${t.fats||0}g.
+JSON only, no prose: {"food_items":[{"name":"","qty":"","cal":0,"pro":0,"carb":0,"fat":0,"fiber":0,"sugar":0}],"totals":{"cal":0,"pro":0,"carb":0,"fat":0,"fiber":0,"sugar":0},"insights":[""],"score":0,"advice":""}
+score=0-10 integer.`;
 }
 
 // ============================================================
@@ -79,7 +79,7 @@ function normalizeResult(result) {
 // ============================================================
 export async function analyzeFoodImage(imageBase64, mediaType, userContext, description) {
   const img = await compressImage(imageBase64, mediaType);
-  const userText = `Analyze this meal.${description ? ` Notes:${description}.` : ''} Return JSON only.`;
+  const userText = description ? `Analyze meal. Note:${description}` : 'Analyze meal.';
 
   try {
     console.log(`[NutriAI] Analyzing with ${MODEL}...`);
@@ -106,9 +106,8 @@ export async function analyzeFoodImage(imageBase64, mediaType, userContext, desc
 // ============================================================
 export async function generateDailySummary(meals, userContext) {
   const mealSummary = meals.map(m => ({ t: m.mealType, n: m.totalNutrition, s: m.healthScore }));
-  const prompt = `Meals:${JSON.stringify(mealSummary)} Targets:${JSON.stringify(userContext.targets)} Goal:${userContext.fitnessGoal}.
-Respond ONLY with this JSON: {"deficiencies":["str"],"suggestions":["str"],"avgScore":0}
-IMPORTANT: avgScore MUST be between 0 and 10.`;
+  const prompt = `Meals:${JSON.stringify(mealSummary)} Targets:cal${userContext.targets?.calories||0} pro${userContext.targets?.protein||0}g goal:${userContext.fitnessGoal}.
+JSON only: {"deficiencies":[""],"suggestions":[""],"avgScore":0} avgScore=0-10.`;
 
   try {
     console.log(`[NutriAI] Summary with ${MODEL}...`);

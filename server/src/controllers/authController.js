@@ -14,6 +14,7 @@ export async function register(req, res, next) {
     const refreshToken = signRefresh(user._id);
     
     user.refreshTokens.push(refreshToken);
+    if (user.refreshTokens.length > 5) user.refreshTokens = user.refreshTokens.slice(-5);
     await user.save();
     
     res.status(201).json({ success: true, accessToken, refreshToken, user });
@@ -30,6 +31,7 @@ export async function login(req, res, next) {
     const accessToken  = signAccess(user._id);
     const refreshToken = signRefresh(user._id);
     user.refreshTokens.push(refreshToken);
+    if (user.refreshTokens.length > 5) user.refreshTokens = user.refreshTokens.slice(-5);
     await user.save();
     
     res.json({ success: true, accessToken, refreshToken, user });
@@ -51,6 +53,7 @@ export async function refreshTokens(req, res, next) {
     const newAccess  = signAccess(user._id);
     const newRefresh = signRefresh(user._id);
     user.refreshTokens.push(newRefresh);
+    if (user.refreshTokens.length > 5) user.refreshTokens = user.refreshTokens.slice(-5);
     await user.save();
     
     res.json({ accessToken: newAccess, refreshToken: newRefresh });
