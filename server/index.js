@@ -23,10 +23,9 @@ const scanLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 30, message: { me
 
 app.use(helmet());
 app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || process.env.NODE_ENV !== 'production') return callback(null, true);
-    return callback(null, process.env.CLIENT_ORIGIN);
-  },
+  origin: process.env.NODE_ENV === 'production' && process.env.CLIENT_ORIGIN
+    ? process.env.CLIENT_ORIGIN.split(',').map(url => url.trim())
+    : true,
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
@@ -44,8 +43,9 @@ app.use('/api/users',           userRoutes);
 
 app.use(errorHandler);
 
-const server = app.listen(process.env.PORT || 5000, () =>
-  console.log(`NutriAI running on port ${process.env.PORT || 5000} [${process.env.NODE_ENV || 'development'}]`)
+const port = process.env.PORT || 5000;
+const server = app.listen(port, '0.0.0.0', () =>
+  console.log(`NutriAI running on port ${port} [${process.env.NODE_ENV || 'development'}]`)
 );
 
 // Graceful shutdown

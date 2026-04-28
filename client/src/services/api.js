@@ -1,8 +1,16 @@
 import axios from 'axios';
 import useAuthStore from '../store/authStore';
 
+const getBaseUrl = () => {
+  const envUrl = import.meta.env.VITE_API_BASE_URL;
+  if (envUrl) {
+    return envUrl.endsWith('/api') ? envUrl : `${envUrl.replace(/\/$/, '')}/api`;
+  }
+  return import.meta.env.DEV ? 'http://localhost:5000/api' : '/api';
+};
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
+  baseURL: getBaseUrl(),
   timeout: 30000
 });
 
