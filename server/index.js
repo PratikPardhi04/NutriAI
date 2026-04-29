@@ -23,13 +23,35 @@ const scanLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 30, message: { me
 
 app.use(helmet());
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' && process.env.CLIENT_ORIGIN
-    ? process.env.CLIENT_ORIGIN.split(',').map(url => url.trim())
-    : true,
+  origin: function(origin, callback) {
+    if (!origin) return callback(null, true);
+    
+    // Always allow localhost in development
+    if (process.env.NODE_ENV !== 'production') return callback(null, true);
+
+    const allowedOrigins = process.env.CLIENT_ORIGIN 
+      ? process.env.CLIENT_ORIGIN.split(',').map(url => url.trim()) 
+      : [];
+
+    // Allow if it's in the list, or if it's ANY Vercel preview deployment
+    if (
+      allowedOrigins.includes(origin) || 
+      origin.endsWith('.vercel.app') || 
+      allowedOrigins.length === 0
+    ) {
+      return callback(null, true);
+    }
+
+    callback(null, false);
+  },
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+
+app.get("/", (req, res) => {
+  res.send("NutriAI API is running!");
+});
 
 // Health check (no auth, for uptime monitors)
 app.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
