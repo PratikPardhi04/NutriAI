@@ -32,7 +32,9 @@ export default function Landing({ initialMode = 'login' }) {
         navigate('/onboarding');
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Authentication failed. Make sure server is running.');
+      console.error('[Auth Error]', err);
+      const message = err.response?.data?.message || err.message || 'Authentication failed.';
+      setError(message);
     }
   };
 

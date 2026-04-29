@@ -115,12 +115,15 @@ export default function Scan() {
 
       setComplete(true);
     } catch (err) {
-      console.warn('Analysis API failed, falling back to mock report:', err);
+      console.error('[Scan Error]', err);
+      const message = err.response?.data?.message || err.message || 'Analysis failed. Showing demo data instead.';
+      setError(message);
+      
       // Fallback to mock Thali result if API fails
       setResult(MOCK_THALI_RESULT);
       setNotification({ 
         title: 'Demo Mode ⚡', 
-        msg: 'The AI service is taking a break. Showing a sample report for this meal.', 
+        msg: message, 
         type: 'info' 
       });
       setComplete(true);

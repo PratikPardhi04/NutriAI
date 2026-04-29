@@ -24,7 +24,9 @@ export default function NutritionChat() {
       });
       setChat(prev => [...prev, { role: 'assistant', text: res.data.data }]);
     } catch (err) {
-      setChat(prev => [...prev, { role: 'assistant', text: "Sorry, I had a glitch. Can you try again?" }]);
+      console.error('[Chat Error]', err);
+      const errorMsg = err.response?.data?.message || "Sorry, I had a glitch. Can you try again?";
+      setChat(prev => [...prev, { role: 'assistant', text: errorMsg }]);
     } finally {
       setLoading(false);
       // Auto scroll
