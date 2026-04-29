@@ -16,12 +16,25 @@ connectDB();
 
 const app = express();
 
-// 1. Raw CORS Middleware (Must be at the TOP)
+// 1. Universal CORS Middleware (Must be at the TOP)
 app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "https://nutri-ai-seven-tau.vercel.app");
+  const origin = req.headers.origin;
+  const allowedOrigins = [
+    "https://nutri-ai-seven-tau.vercel.app",
+    "http://localhost:5173",
+  ];
+
+  if (allowedOrigins.includes(origin)) {
+    res.header("Access-Control-Allow-Origin", origin);
+  } else {
+    res.header("Access-Control-Allow-Origin", "https://nutri-ai-seven-tau.vercel.app");
+  }
+
   res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH");
-  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept, Origin");
   res.header("Access-Control-Allow-Credentials", "true");
+  res.header("Access-Control-Max-Age", "86400");
+
   if (req.method === "OPTIONS") {
     return res.sendStatus(204);
   }

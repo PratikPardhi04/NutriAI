@@ -6,9 +6,10 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 const api = axios.create({
   baseURL: API_URL,
   withCredentials: true,
-  timeout: 30000,
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
+    'Accept': 'application/json',
   },
 });
 
@@ -23,6 +24,14 @@ api.interceptors.request.use(config => {
 api.interceptors.response.use(
   res => res,
   async err => {
+    // Handle Timeouts & Network Errors (Universal for mobile)
+    if (err.code === "ECONNABORTED") {
+      return Promise.reject(new Error("Request timed out. Please check your connection."));
+    }
+    if (!err.response) {
+      return Promise.reject(new Error("Network error. Please check your internet connection."));
+    }
+
     const original = err.config;
     if (err.response?.status === 401 && !original._retry) {
       original._retry = true;
