@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom'
 const GLOBAL_CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap');
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 html { scroll-behavior: smooth; }
 body { background: #06060A; color: #EEEEF5; font-family: 'DM Sans', sans-serif; overflow-x: hidden; }
 
@@ -66,7 +66,7 @@ body { background: #06060A; color: #EEEEF5; font-family: 'DM Sans', sans-serif; 
 .shutter-btn { position:absolute; bottom:40px; left:50%; transform:translateX(-50%); width:54px; height:54px; border-radius:50%; border:3px solid #fff; display:flex; alignItems:center; justifyContent:center; }
 .shutter-inner { width:40px; height:40px; border-radius:50%; background:#fff; }
 
-.report-view { position:absolute; inset:0; z-index:10; background:#06060A; display:flex; flex-direction:column; gap:16px; overflow-y: auto; padding: 20px 16px; }
+.report-view { position:absolute; inset:0; z-index:10; background:#06060A; display:flex; flex-direction:column; gap:16px; overflow: hidden; padding: 20px 16px; pointer-events: none; }
 .report-card { background:var(--surface); border:1px solid var(--border); border-radius:24px; padding:20px; }
 .bracket { position: absolute; width: 20px; height: 20px; border: 2.5px solid var(--lime); animation: pulseBracket 2s ease-in-out infinite; }
 .tl { top: 12px; left: 12px; border-right: none; border-bottom: none; border-radius: 6px 0 0 0; }
@@ -501,7 +501,7 @@ const PhoneMockup = () => {
                 exit={{ opacity: 0, x: -20, scale: 0.95 }}
                 transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
                 className="no-scroll-bar"
-                style={{ height:'100%', overflowY:'auto', padding:'54px 14px 80px', display:'flex', flexDirection:'column', gap:12, pointerEvents:'auto', msOverflowStyle:'none', scrollbarWidth:'none' }}
+                style={{ height:'100%', overflow:'hidden', padding:'54px 14px 80px', display:'flex', flexDirection:'column', gap:12, pointerEvents:'none', msOverflowStyle:'none', scrollbarWidth:'none' }}
               >
                 
                 {/* Header (Home.jsx style) */}

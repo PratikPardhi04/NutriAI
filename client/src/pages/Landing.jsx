@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Camera, Zap, ShieldCheck } from 'lucide-react';
+import { Camera, Zap, ShieldCheck, ArrowLeft } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import api from '../lib/api';
 
@@ -8,6 +8,10 @@ export default function Landing({ initialMode = 'login' }) {
   const [isLogin, setIsLogin] = useState(initialMode !== 'register');
   const navigate = useNavigate();
   const { setAuth } = useAuthStore();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
   
   // Auth Form State
   const [email, setEmail] = useState('');
@@ -110,6 +114,10 @@ export default function Landing({ initialMode = 'login' }) {
 
       {/* Right side: Auth forms */}
       <div className="l-auth">
+        <Link to="/" style={{ position: 'absolute', top: 32, right: 32, display: 'flex', alignItems: 'center', gap: 6, color: '#6B7280', textDecoration: 'none', fontSize: 13, fontWeight: 500, transition: '0.2s' }}>
+          <ArrowLeft size={16} />
+          Back to Home
+        </Link>
         <div className="auth-container">
           <div className="tab-switcher">
             <div className={`tab ${isLogin ? 'active' : ''}`} onClick={() => setIsLogin(true)}>Sign In</div>
