@@ -22,6 +22,7 @@ app.use((req, res, next) => {
   const allowedOrigins = [
     "https://nutri-ai-seven-tau.vercel.app",
     "http://localhost:5173",
+    "http://localhost:5000",
   ];
 
   if (allowedOrigins.includes(origin)) {
