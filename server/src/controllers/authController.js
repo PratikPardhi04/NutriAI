@@ -18,7 +18,7 @@ export async function register(req, res, next) {
     await user.save();
     
     res.status(201).json({ success: true, accessToken, refreshToken, user });
-  } catch (err) { next(err); }
+  } catch (err) { res.status(500).json({ message: "Server error", error: err.message }); }
 }
 
 export async function login(req, res, next) {
@@ -35,7 +35,7 @@ export async function login(req, res, next) {
     await user.save();
     
     res.json({ success: true, accessToken, refreshToken, user });
-  } catch (err) { next(err); }
+  } catch (err) { res.status(500).json({ message: "Server error", error: err.message }); }
 }
 
 export async function refreshTokens(req, res, next) {
@@ -57,7 +57,7 @@ export async function refreshTokens(req, res, next) {
     await user.save();
     
     res.json({ accessToken: newAccess, refreshToken: newRefresh });
-  } catch (err) { next(err); }
+  } catch (err) { res.status(500).json({ message: "Server error", error: err.message }); }
 }
 
 export async function logout(req, res, next) {
@@ -67,5 +67,5 @@ export async function logout(req, res, next) {
     user.refreshTokens = user.refreshTokens.filter(t => t !== refreshToken);
     await user.save();
     res.json({ success: true });
-  } catch (err) { next(err); }
+  } catch (err) { res.status(500).json({ message: "Server error", error: err.message }); }
 }

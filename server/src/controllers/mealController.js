@@ -15,7 +15,7 @@ export async function getMeals(req, res, next) {
 
     const meals = await Meal.find(query).sort({ loggedAt: -1 });
     res.json({ success: true, data: meals });
-  } catch (err) { next(err); }
+  } catch (err) { res.status(500).json({ message: "Server error", error: err.message }); }
 }
 
 export async function getDailySummary(req, res, next) {
@@ -26,7 +26,7 @@ export async function getDailySummary(req, res, next) {
     
     const summary = await DailySummary.findOne({ user: req.user._id, date });
     res.json({ success: true, data: summary });
-  } catch (err) { next(err); }
+  } catch (err) { res.status(500).json({ message: "Server error", error: err.message }); }
 }
 
 export async function getRangeSummary(req, res, next) {
@@ -68,7 +68,7 @@ export async function getRangeSummary(req, res, next) {
     if(suggestions.length === 0) suggestions = ["No specific insights yet, keep logging."];
 
     res.json({ success: true, data: { totals, avgHealthScore, deficiencies, suggestions } });
-  } catch (err) { next(err); }
+  } catch (err) { res.status(500).json({ message: "Server error", error: err.message }); }
 }
 
 export async function getWeeklyReport(req, res, next) {
@@ -92,7 +92,7 @@ export async function getWeeklyReport(req, res, next) {
     });
 
     res.json({ success: true, data: weeklyData });
-  } catch (err) { next(err); }
+  } catch (err) { res.status(500).json({ message: "Server error", error: err.message }); }
 }
 
 export async function getMealById(req, res, next) {
@@ -100,7 +100,7 @@ export async function getMealById(req, res, next) {
     const meal = await Meal.findOne({ _id: req.params.id, user: req.user._id });
     if (!meal) return res.status(404).json({ message: 'Meal not found' });
     res.json({ success: true, data: meal });
-  } catch (err) { next(err); }
+  } catch (err) { res.status(500).json({ message: "Server error", error: err.message }); }
 }
 
 export async function deleteMeal(req, res, next) {
@@ -114,5 +114,5 @@ export async function deleteMeal(req, res, next) {
     }
     await meal.deleteOne();
     res.json({ success: true, message: 'Meal deleted' });
-  } catch (err) { next(err); }
+  } catch (err) { res.status(500).json({ message: "Server error", error: err.message }); }
 }

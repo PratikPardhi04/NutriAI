@@ -84,9 +84,7 @@ export async function analyzeImage(req, res, next) {
       success: true,
       data: { meal, analysis, summary }
     });
-  } catch (err) {
-    next(err);
-  }
+  } catch (err) { res.status(500).json({ message: "Server error", error: err.message }); }
 }
 
 export async function chatWithCoach(req, res, next) {
@@ -154,7 +152,5 @@ export async function chatWithCoach(req, res, next) {
     const response = await generateCoachChatResponse(message, userContext, chatHistory);
 
     res.json({ success: true, data: response });
-  } catch (err) {
-    next(err);
-  }
+  } catch (err) { res.status(500).json({ message: "Server error", error: err.message }); }
 }

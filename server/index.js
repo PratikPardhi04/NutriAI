@@ -27,21 +27,26 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
 app.get("/", (req, res) => {
   res.send("NutriAI API is running!");
 });
 
+app.get("/api", (req, res) => {
+  res.json({ message: "NutriAI API Root", status: "ok" });
+});
+
 // Health check (no auth, for uptime monitors)
 app.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
+// API Routes
 app.use('/api/auth',            authLimiter, authRoutes);
-app.use('/api/analysis/scan',   scanLimiter);
-app.use('/api',                 apiLimiter);
-app.use('/api/meals',           mealRoutes);
-app.use('/api/analysis',        analysisRoutes);
-app.use('/api/users',           userRoutes);
+app.use('/api/analysis/scan',   scanLimiter); // Note: scan path for limiter only
+app.use('/api/meals',           apiLimiter, mealRoutes);
+app.use('/api/analysis',        apiLimiter, analysisRoutes);
+app.use('/api/users',           apiLimiter, userRoutes);
 
 app.use(errorHandler);
 

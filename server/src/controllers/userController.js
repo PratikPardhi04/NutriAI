@@ -5,7 +5,7 @@ export async function getProfile(req, res, next) {
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: 'User not found' });
     res.json({ success: true, data: user });
-  } catch (err) { next(err); }
+  } catch (err) { res.status(500).json({ message: "Server error", error: err.message }); }
 }
 
 export async function updateProfile(req, res, next) {
@@ -31,5 +31,5 @@ export async function updateProfile(req, res, next) {
     );
     if (!user) return res.status(404).json({ message: 'User not found' });
     res.json({ success: true, data: user });
-  } catch (err) { next(err); }
+  } catch (err) { res.status(500).json({ message: "Server error", error: err.message }); }
 }
