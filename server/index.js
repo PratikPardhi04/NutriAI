@@ -23,7 +23,7 @@ app.use(cors({
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
 }));
-app.options("*", cors()); // Enable pre-flight for all routes
+app.options("/{*path}", cors()); // Enable pre-flight for all routes (Express 5 syntax)
 
 app.use(helmet());
 
