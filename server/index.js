@@ -16,16 +16,21 @@ connectDB();
 
 const app = express();
 
+// 1. CORS Configuration (Must be at the TOP)
+app.use(cors({
+  origin: process.env.CLIENT_ORIGIN || "http://localhost:5173",
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
+}));
+app.options("*", cors()); // Enable pre-flight for all routes
+
+app.use(helmet());
+
 // Rate limiters
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: { message: 'Too many attempts, try again in 15 minutes' } });
 const apiLimiter  = rateLimit({ windowMs: 15 * 60 * 1000, max: 200 });
 const scanLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 30, message: { message: 'Scan limit reached, try again in an hour' } });
-
-app.use(helmet());
-app.use(cors({
-  origin: process.env.CLIENT_ORIGIN || "http://localhost:5173",
-  credentials: true,
-}));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
