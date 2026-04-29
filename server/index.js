@@ -23,28 +23,8 @@ const scanLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 30, message: { me
 
 app.use(helmet());
 app.use(cors({
-  origin: function(origin, callback) {
-    if (!origin) return callback(null, true);
-    
-    // Always allow localhost in development
-    if (process.env.NODE_ENV !== 'production') return callback(null, true);
-
-    const allowedOrigins = process.env.CLIENT_ORIGIN 
-      ? process.env.CLIENT_ORIGIN.split(',').map(url => url.trim()) 
-      : [];
-
-    // Allow if it's in the list, or if it's ANY Vercel preview deployment
-    if (
-      allowedOrigins.includes(origin) || 
-      origin.endsWith('.vercel.app') || 
-      allowedOrigins.length === 0
-    ) {
-      return callback(null, true);
-    }
-
-    callback(null, false);
-  },
-  credentials: true
+  origin: process.env.CLIENT_ORIGIN || "http://localhost:5173",
+  credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));

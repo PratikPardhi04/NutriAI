@@ -1,16 +1,11 @@
 import axios from 'axios';
 import useAuthStore from '../store/authStore';
 
-const getBaseUrl = () => {
-  const envUrl = import.meta.env.VITE_API_BASE_URL;
-  if (envUrl) {
-    return envUrl.endsWith('/api') ? envUrl : `${envUrl.replace(/\/$/, '')}/api`;
-  }
-  return import.meta.env.DEV ? 'http://localhost:5000/api' : '/api';
-};
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 const api = axios.create({
-  baseURL: getBaseUrl(),
+  baseURL: API_URL,
+  withCredentials: true,
   timeout: 30000
 });
 
@@ -31,7 +26,7 @@ api.interceptors.response.use(
       try {
         const { refreshToken, setTokens } = useAuthStore.getState();
         const { data } = await axios.post(
-          `${import.meta.env.VITE_API_BASE_URL}/auth/refresh`,
+          `${API_URL}/auth/refresh`,
           { refreshToken }
         );
         setTokens(data.accessToken, data.refreshToken);
