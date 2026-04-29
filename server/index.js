@@ -1,5 +1,5 @@
 import express from 'express';
-import cors from 'cors';
+
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
@@ -16,27 +16,17 @@ connectDB();
 
 const app = express();
 
-// 1. CORS Configuration (Must be at the TOP)
-const allowedOrigins = [
-  "http://localhost:5173",
-  process.env.CLIENT_ORIGIN,
-].filter(Boolean);
-
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-  credentials: true,
-  optionsSuccessStatus: 204,
-}));
-
-app.options("/{*path}", cors()); // Enable pre-flight for all routes (Express 5 syntax)
+// 1. Raw CORS Middleware (Must be at the TOP)
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "https://nutri-ai-seven-tau.vercel.app");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
+  res.header("Access-Control-Allow-Credentials", "true");
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(204);
+  }
+  next();
+});
 
 app.use(helmet());
 
