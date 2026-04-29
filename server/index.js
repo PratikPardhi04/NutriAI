@@ -17,12 +17,25 @@ connectDB();
 const app = express();
 
 // 1. CORS Configuration (Must be at the TOP)
+const allowedOrigins = [
+  "http://localhost:5173",
+  process.env.CLIENT_ORIGIN,
+].filter(Boolean);
+
 app.use(cors({
-  origin: process.env.CLIENT_ORIGIN || "http://localhost:5173",
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
   credentials: true,
+  optionsSuccessStatus: 204,
 }));
+
 app.options("/{*path}", cors()); // Enable pre-flight for all routes (Express 5 syntax)
 
 app.use(helmet());
