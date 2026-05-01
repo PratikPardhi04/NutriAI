@@ -30,9 +30,11 @@ export async function analyzeImage(req, res, next) {
         throw new Error('Incomplete AI response');
       }
     } catch (aiErr) {
-      console.error('[Scan] AI Analysis failed, falling back to mock report:', aiErr.message);
-      const { getMockAnalysisResult } = await import('../services/geminiService.js');
-      analysis = getMockAnalysisResult(userContext);
+      console.error('[Scan] AI Analysis failed:', aiErr.message);
+      return res.status(400).json({ 
+        success: false, 
+        message: aiErr.message 
+      });
     }
 
     // 4. Upload image to Cloudinary

@@ -45,8 +45,8 @@ app.use((req, res, next) => {
 app.use(helmet());
 
 // Rate limiters
-const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: { message: 'Too many attempts, try again in 15 minutes' } });
-const apiLimiter  = rateLimit({ windowMs: 15 * 60 * 1000, max: 200 });
+
+const apiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 200 });
 const scanLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 30, message: { message: 'Scan limit reached, try again in an hour' } });
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -64,11 +64,11 @@ app.get("/api", (req, res) => {
 app.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
 // API Routes
-app.use('/api/auth',            authLimiter, authRoutes);
-app.use('/api/analysis/scan',   scanLimiter); // Note: scan path for limiter only
-app.use('/api/meals',           apiLimiter, mealRoutes);
-app.use('/api/analysis',        apiLimiter, analysisRoutes);
-app.use('/api/users',           apiLimiter, userRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/analysis/scan', scanLimiter); // Note: scan path for limiter only
+app.use('/api/meals', apiLimiter, mealRoutes);
+app.use('/api/analysis', apiLimiter, analysisRoutes);
+app.use('/api/users', apiLimiter, userRoutes);
 
 app.use(errorHandler);
 

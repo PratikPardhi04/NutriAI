@@ -3,11 +3,19 @@ import sharp from 'sharp';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const geminiKey = process.env.GEMINI_API_KEY;
-if (!geminiKey) console.error('[NutriAI] ⚠️  GEMINI_API_KEY not set — AI calls will fail');
+const key1 = process.env.GEMINI_API_KEY;
+const key2 = process.env.GEMINI_API_KEY_2 || key1;
+const key3 = process.env.GEMINI_API_KEY_3 || key2;
 
-const ai = new GoogleGenAI({ apiKey: geminiKey });
-const MODEL = 'gemini-2.5-flash';
+if (!key1) console.error('[NutriAI] ⚠️  GEMINI_API_KEY not set');
+
+const aiScan = new GoogleGenAI({ apiKey: key1 });
+const aiReport = new GoogleGenAI({ apiKey: key2 });
+const aiChat = new GoogleGenAI({ apiKey: key3 });
+
+// Using 2.5-flash as requested
+const MODEL_IMAGE = 'gemini-2.5-flash';
+const MODEL_TEXT = 'gemini-2.5-flash';
 
 // ============================================================
 //  IMAGE COMPRESSION
@@ -16,8 +24,8 @@ async function compressImage(imageBase64, mediaType) {
   try {
     const buffer = Buffer.from(imageBase64, 'base64');
     const compressed = await sharp(buffer)
-      .resize(320, 320, { fit: 'inside', withoutEnlargement: true })
-      .jpeg({ quality: 45, mozjpeg: true })
+      .resize(240, 240, { fit: 'inside', withoutEnlargement: true })
+      .jpeg({ quality: 30, mozjpeg: true })
       .toBuffer();
     console.log(`[NutriAI] Image: ${(buffer.length / 1024).toFixed(0)}KB → ${(compressed.length / 1024).toFixed(0)}KB`);
     return { base64: compressed.toString('base64'), mimeType: 'image/jpeg' };
@@ -30,9 +38,61 @@ async function compressImage(imageBase64, mediaType) {
 // ============================================================
 //  HELPERS
 // ============================================================
-async function callGemini(contents, config = {}) {
-  const response = await ai.models.generateContent({ model: MODEL, contents, config });
+async function _callGemini(client, model, contents, config = {}) {
+  const response = await client.models.generateContent({ model, contents, config });
   return response.text;
+}
+
+async function callGeminiWithRetry(client, model, contents, config = {}) {
+  const delays = [1000, 2000, 4000];
+  let lastError;
+
+  for (let i = 0; i <= delays.length; i++) {
+    try {
+      return await _callGemini(client, model, contents, config);
+    } catch (err) {
+      lastError = err;
+      const msg = err.message?.toLowerCase() || '';
+      const isRetryable = msg.includes('503') || msg.includes('overloaded') || msg.includes('busy') || msg.includes('429');
+      
+      if (isRetryable && i < delays.length) {
+        console.warn(`[NutriAI] Gemini busy (${model}), retrying in ${delays[i]}ms... (${i + 1}/3)`);
+        await new Promise(res => setTimeout(res, delays[i]));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastError;
+}
+
+/**
+ * Failover logic using all 3 API keys
+ */
+async function callWithFailover(model, contents, config = {}) {
+  const clients = [
+    { name: "Key 1", client: aiScan },
+    { name: "Key 2", client: aiReport },
+    { name: "Key 3", client: aiChat }
+  ];
+  let lastError;
+
+  for (const item of clients) {
+    try {
+      return await callGeminiWithRetry(item.client, model, contents, config);
+    } catch (err) {
+      lastError = err;
+      const msg = err.message?.toLowerCase() || '';
+      const isBusy = msg.includes('503') || msg.includes('overloaded') || msg.includes('busy') || msg.includes('429');
+      
+      if (isBusy && item.name !== "Key 3") {
+        console.warn(`[NutriAI] ${item.name} failed (${model}), failing over to next key...`);
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastError;
 }
 
 function parseJSON(raw) {
@@ -59,9 +119,9 @@ function parseJSON(raw) {
 // ============================================================
 function buildSystemPrompt(u) {
   const t = u.targets || {};
-  return `Nutrition analyzer. User:${u.age||'?'}y ${u.gender||'?'} ${u.weightKg||'?'}kg goal:${u.fitnessGoal||'maintenance'} cal:${t.calories||0} pro:${t.protein||0}g carb:${t.carbs||0}g fat:${t.fats||0}g.
-JSON only, no prose: {"food_items":[{"name":"","qty":"","cal":0,"pro":0,"carb":0,"fat":0,"fiber":0,"sugar":0}],"totals":{"cal":0,"pro":0,"carb":0,"fat":0,"fiber":0,"sugar":0},"insights":[""],"score":0,"advice":""}
-score=0-10 integer.`;
+  return `NutriAI. User:${u.age||'?'}y ${u.gender||'?'} ${u.weightKg||'?'}kg ${u.fitnessGoal||'maint'}. Targets: Cal:${t.calories||0} P:${t.protein||0}g C:${t.carbs||0}g F:${t.fats||0}g.
+JSON: {"food_items":[{"name":"","estimated_quantity":"","confidence":"high","calories":0,"protein":0,"carbs":0,"fats":0,"fiber":0,"sugar":0}],"total_nutrition":{"calories":0,"protein":0,"carbs":0,"fats":0,"fiber":0,"sugar":0},"health_insights":[""],"health_score":0,"coach_advice":""}
+Score: 0-10.`;
 }
 
 // ============================================================
@@ -82,8 +142,9 @@ export async function analyzeFoodImage(imageBase64, mediaType, userContext, desc
   const userText = description ? `Analyze meal. Note:${description}` : 'Analyze meal.';
 
   try {
-    console.log(`[NutriAI] Analyzing with ${MODEL}...`);
-    const text = await callGemini(
+    console.log(`[NutriAI] Scanning with Failover Support (${MODEL_IMAGE})...`);
+    const text = await callWithFailover(
+      MODEL_IMAGE,
       [{
         role: 'user', parts: [
           { inlineData: { data: img.base64, mimeType: img.mimeType } },
@@ -92,12 +153,15 @@ export async function analyzeFoodImage(imageBase64, mediaType, userContext, desc
       }],
       { systemInstruction: buildSystemPrompt(userContext), responseMimeType: 'application/json', temperature: 0.1 }
     );
-    console.log(`[NutriAI] ✓ ${MODEL}`);
-    return normalizeResult(parseJSON(text));
+    
+    const result = normalizeResult(parseJSON(text));
+    if (!result || !result.total_nutrition) {
+      console.warn('[NutriAI] ⚠️ Result missing total_nutrition. Raw response:', text);
+    }
+    return result;
   } catch (err) {
-    console.error(`[NutriAI] ❌ ${MODEL}:`, err.message?.substring(0, 150));
-    console.warn('[NutriAI] Returning mock result');
-    return getMockAnalysisResult(userContext);
+    console.error(`[NutriAI] ❌ Analysis failed:`, err.message?.substring(0, 150));
+    throw new Error("We couldn't analyze this image. Please ensure it shows food clearly or try again later.");
   }
 }
 
@@ -106,25 +170,27 @@ export async function analyzeFoodImage(imageBase64, mediaType, userContext, desc
 // ============================================================
 export async function generateDailySummary(meals, userContext) {
   const mealSummary = meals.map(m => ({ t: m.mealType, n: m.totalNutrition, s: m.healthScore }));
-  const prompt = `Meals:${JSON.stringify(mealSummary)} Targets:cal${userContext.targets?.calories||0} pro${userContext.targets?.protein||0}g goal:${userContext.fitnessGoal}.
-JSON only: {"deficiencies":[""],"suggestions":[""],"avgScore":0} avgScore=0-10.`;
+  const prompt = `Data:${JSON.stringify(mealSummary)} Goal:${userContext.fitnessGoal}. JSON:{"deficiencies":[],"suggestions":[],"avgScore":0}`;
 
   try {
-    console.log(`[NutriAI] Summary with ${MODEL}...`);
-    const text = await callGemini(
+    // Small delay to avoid burst limits
+    await new Promise(res => setTimeout(res, 1000));
+    
+    console.log(`[NutriAI] Summary with Failover Support (${MODEL_TEXT})...`);
+    const text = await callWithFailover(
+      MODEL_TEXT,
       [{ role: 'user', parts: [{ text: prompt }] }],
       { responseMimeType: 'application/json', temperature: 0.1 }
     );
-    console.log(`[NutriAI] ✓ Summary ${MODEL}`);
+    
     const result = parseJSON(text);
     if (result && typeof result.avgScore === 'number' && result.avgScore > 10) {
       result.avgScore = Math.min(10, Math.round(result.avgScore / 10));
     }
     return result;
   } catch (err) {
-    console.error(`[NutriAI] ❌ ${MODEL} summary:`, err.message?.substring(0, 150));
-    console.warn('[NutriAI] Returning mock summary');
-    return getMockDailySummary(userContext);
+    console.error(`[NutriAI] ❌ Summary failed:`, err.message?.substring(0, 150));
+    return { deficiencies: [], suggestions: [], avgScore: 0 };
   }
 }
 
@@ -162,60 +228,18 @@ Never say "Based on your data..." unless they asked you to look at their data.
 No medical diagnoses or prescription medication advice.`;
 
   try {
-    console.log(`[CoachChat] ${MODEL}...`);
+    console.log(`[CoachChat] Chat with Failover Support (${MODEL_TEXT})...`);
     const contents = [
       { role: 'user', parts: [{ text: systemPrompt }] },
       { role: 'model', parts: [{ text: 'Got it.' }] },
       ...chatHistory.map(h => ({ role: h.role === 'user' ? 'user' : 'model', parts: [{ text: h.text }] })),
       { role: 'user', parts: [{ text: userMessage }] },
     ];
-    const text = await callGemini(contents, { temperature: 0.7 });
-    console.log(`[CoachChat] ✓ ${MODEL}`);
+    const text = await callWithFailover(MODEL_TEXT, contents, { temperature: 0.7 });
+    console.log(`[CoachChat] ✓ ${MODEL_TEXT}`);
     return text;
   } catch (err) {
-    console.error(`[CoachChat] ❌ ${MODEL}:`, err.message?.substring(0, 150));
+    console.error(`[CoachChat] ❌ Chat failed:`, err.message?.substring(0, 150));
     return "I'm having trouble connecting right now. Please try again in a moment.";
   }
-}
-
-// ============================================================
-//  Mock fallbacks
-// ============================================================
-export function getMockAnalysisResult(userContext) {
-  return {
-    food_items: [
-      { name: "Paneer Curry", estimated_quantity: "1 serving (~200g)", confidence: "high", calories: 280, protein: 18, carbs: 12, fats: 18, fiber: 2, sugar: 4 },
-      { name: "Vegetable Curry", estimated_quantity: "1 serving (~200g)", confidence: "high", calories: 250, protein: 20, carbs: 15, fats: 12, fiber: 3, sugar: 5 },
-      { name: "Dal", estimated_quantity: "1 serving (~150g)", confidence: "high", calories: 140, protein: 6, carbs: 18, fats: 5, fiber: 4, sugar: 3 },
-      { name: "Yogurt Raita", estimated_quantity: "1 serving (~100g)", confidence: "high", calories: 120, protein: 8, carbs: 10, fats: 4, fiber: 2, sugar: 2 },
-      { name: "Basmati Rice", estimated_quantity: "1 cup (~180g)", confidence: "high", calories: 288, protein: 5, carbs: 62, fats: 1, fiber: 2, sugar: 0 },
-      { name: "Naan Bread", estimated_quantity: "1-2 pieces (~100g)", confidence: "high", calories: 280, protein: 8, carbs: 48, fats: 7, fiber: 1.5, sugar: 3 },
-    ],
-    total_nutrition: { calories: 1358, protein: 65, carbs: 165, fats: 47, fiber: 14.5, sugar: 17 },
-    health_insights: [
-      "Good protein balance from multiple sources",
-      "High fiber content promotes digestive health",
-      "Turmeric and spices provide anti-inflammatory benefits",
-      "Yogurt adds probiotics for gut health",
-    ],
-    health_score: 8,
-    coach_advice: "Solid meal! Watch the carb load from rice + naan together — pick one if you're cutting.",
-  };
-}
-
-function getMockDailySummary(userContext) {
-  return {
-    deficiencies: [
-      "Protein — under your daily target, add a protein source to your next meal",
-      "Fiber — include more vegetables and whole grains",
-      "Micronutrients — low on Vitamin C and Calcium today",
-    ],
-    suggestions: [
-      "Add a post-workout protein shake or Greek yogurt to hit your protein target",
-      "Swap refined carbs for complex ones — brown rice, oats, sweet potato",
-      "Drink at least 3L of water today to support metabolism and recovery",
-      "A 20–30 min walk after your biggest meal helps with insulin sensitivity",
-    ],
-    avgScore: 5,
-  };
 }
