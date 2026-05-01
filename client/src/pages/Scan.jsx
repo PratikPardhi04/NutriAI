@@ -4,25 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import api from '../lib/api';
 
-const MOCK_THALI_RESULT = {
-  health_score: 8.4,
-  total_nutrition: {
-    calories: 1358,
-    fats: 47,
-    sugar: 17,
-    protein: 68,
-    carbs: 142
-  },
-  food_items: [
-    { name: 'Paneer Curry', estimated_quantity: '1 serving (~200g)', calories: 280, fats: 18, sugar: 4, confidence: 'high' },
-    { name: 'Vegetable Curry', estimated_quantity: '1 serving (~200g)', calories: 250, fats: 12, sugar: 5, confidence: 'high' },
-    { name: 'Dal', estimated_quantity: '1 serving (~150g)', calories: 140, fats: 5, sugar: 3, confidence: 'high' },
-    { name: 'Yogurt Raita', estimated_quantity: '1 serving (~100g)', calories: 120, fats: 4, sugar: 2, confidence: 'high' },
-    { name: 'Basmati Rice', estimated_quantity: '1 cup (~180g)', calories: 288, fats: 1, sugar: 0, confidence: 'high' },
-    { name: 'Naan Bread', estimated_quantity: '1-2 pieces (~100g)', calories: 280, fats: 7, sugar: 3, confidence: 'high' }
-  ],
-  coach_advice: "Solid meal! Watch the carb load from rice + naan together — pick one if you're cutting."
-};
 
 export default function Scan() {
   const navigate = useNavigate();
@@ -116,17 +97,13 @@ export default function Scan() {
       setComplete(true);
     } catch (err) {
       console.error('[Scan Error]', err);
-      const message = err.response?.data?.message || err.message || 'Analysis failed. Showing demo data instead.';
+      const message = err.response?.data?.message || err.message || 'Analysis failed. Please try again.';
       setError(message);
-      
-      // Fallback to mock Thali result if API fails
-      setResult(MOCK_THALI_RESULT);
       setNotification({ 
-        title: 'Demo Mode ⚡', 
+        title: 'Analysis Error ⚠️', 
         msg: message, 
-        type: 'info' 
+        type: 'error' 
       });
-      setComplete(true);
     } finally {
       setAnalyzing(false);
     }
