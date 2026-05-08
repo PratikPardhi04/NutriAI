@@ -2,6 +2,11 @@
 
 NutriAI is a premium, AI-powered nutrition platform designed to help users track their health and diet through advanced image analysis and data synthesis. Built with the MERN stack, it leverages state-of-the-art AI models to provide real-time nutritional insights.
 
+## 🌐 Live Demo
+🚀 Hosted App: https://nutri-ai-seven-tau.vercel.app
+
+---
+
 ## 🚀 Features
 
 - **AI-Powered Scanning**: Capture or upload photos of your meals for instant nutritional analysis using Gemini 2.5 Flash.
@@ -9,6 +14,8 @@ NutriAI is a premium, AI-powered nutrition platform designed to help users track
 - **Interactive Dashboard**: Visualize your health data with dynamic charts and progress tracking.
 - **Secure Authentication**: Robust user authentication with JWT and bcrypt.
 - **Mobile Responsive**: Premium design that works seamlessly on both desktop and mobile devices.
+
+---
 
 ## 🛠️ Technology Stack
 
@@ -27,6 +34,8 @@ NutriAI is a premium, AI-powered nutrition platform designed to help users track
 - **Cloudinary** (Image Storage)
 - **Sharp & Multer** (Image Processing)
 - **JWT** (Security)
+
+---
 
 ## 📦 Installation
 
@@ -49,7 +58,9 @@ NutriAI is a premium, AI-powered nutrition platform designed to help users track
    cd server
    npm install
    ```
+
    Create a `.env` file in the `server` directory and add:
+
    ```env
    PORT=5000
    NODE_ENV=development
@@ -67,10 +78,14 @@ NutriAI is a premium, AI-powered nutrition platform designed to help users track
    cd ../client
    npm install
    ```
+
    Create a `.env` file in the `client` directory:
+
    ```env
    VITE_API_URL=http://localhost:5000/api
    ```
+
+---
 
 ## 🏃 Running the Application
 
@@ -86,13 +101,23 @@ cd client
 npm run dev
 ```
 
-The application will be available at `http://localhost:5173`.
+The application will be available at:
+
+```bash
+http://localhost:5173
+```
+
+---
 
 ## 🛡️ Security Features
+
 - **Rate Limiting**: Protection against brute-force attacks.
 - **Helmet**: Secure HTTP headers.
 - **Data Validation**: Express-validator for sanitizing inputs.
 - **Secure Password Hashing**: Using bcryptjs.
 
+---
+
 ## 📄 License
+
 This project is licensed under the ISC License.
